@@ -194,6 +194,14 @@ module Handsoap
     def on_fault(fault)
       raise fault
     end
+    def on_raw_response(_http_response, envelope_namespace)
+      soap_response = Response.new(yield, envelope_namespace)
+      if soap_response.fault?
+        on_fault(soap_response.fault)
+      else
+        soap_response
+      end
+    end
     private
     # Helper to serialize a node into a ruby string
     def xml_to_str(node, xquery = nil)
@@ -265,7 +273,7 @@ module Handsoap
         fire_on_log_header { "HandSoap Response [#{dispatch_id}]: length: [#{@http_client.body_str.length}], HTTP-Status: [#{@http_client.response_code}], Content-Type: [#{@http_client.content_type}]" }
         fire_on_log_body { Handsoap.pretty_format_envelope(@http_client.body_str) }
 
-        soap_response = Response.new(@http_client.body_str, envelope_namespace)
+        soap_response = on_raw_response(@http_client, envelope_namespace) { @http_client.body_str }
       else
         if !@http_client
           require 'httpclient'
@@ -274,13 +282,10 @@ module Handsoap
         end
         response = @http_client.post(uri, body, headers)
 
-        fire_on_log_header { "HandSoap Response [#{dispatch_id}]: length: [#{response.content.length}], HTTP-Status: [#{response.status}], Content-Type: [#{response.contenttype}]" }
+        fire_on_log_header { "HandSoap Response [#{dispatch_id}]: length: [#{response.http_body.size}], HTTP-Status: [#{response.status}], Content-Type: [#{response.contenttype}]" }
         fire_on_log_body { Handsoap.pretty_format_envelope(response.content) }
 
-        soap_response = Response.new(response.content, envelope_namespace)
-      end
-      if soap_response.fault?
-        return self.on_fault(soap_response.fault)
+        soap_response = on_raw_response(response, envelope_namespace) { response.content }
       end
       return soap_response
     end
