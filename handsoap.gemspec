@@ -24,7 +24,6 @@ Gem::Specification.new do |s|
     "lib/handsoap/service.rb",
     "lib/handsoap/xml_mason.rb"
   ]
-  s.has_rdoc = true
   s.homepage = %q{http://github.com/troelskn/handsoap}
   s.rdoc_options = ["--charset=UTF-8"]
   s.require_paths = ["lib"]
